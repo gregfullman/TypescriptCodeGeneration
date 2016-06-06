@@ -20,6 +20,7 @@ namespace TypescriptCodeGeneration
 
             try
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(fileName));
                 File.WriteAllText(fileName, contents, new UTF8Encoding(withBOM));
             }
             catch (IOException)

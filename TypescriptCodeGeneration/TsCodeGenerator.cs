@@ -22,7 +22,7 @@ namespace TypescriptCodeGeneration
 
         public static event EventHandler<TsCodeGeneratorEventArgs> MessageOutputted;
 
-        public static async Task<IEnumerable<string>> GenerateCode(string solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
+        public static async Task<Dictionary<string, List<string>>> GenerateCode(string solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
         {
             if (_solution == null || _solution.FilePath != solution)
             {
@@ -49,7 +49,7 @@ namespace TypescriptCodeGeneration
             }
         }
 
-        public static async Task<IEnumerable<string>> GenerateCode(Solution solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
+        public static async Task<Dictionary<string, List<string>>> GenerateCode(Solution solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
         {
             _solution = solution;
 
@@ -221,14 +221,14 @@ namespace TypescriptCodeGeneration
                 }
             }
 
-            List<string> projectReferenceFiles = new List<string>();
+            Dictionary<string, List<string>> projectReferenceFiles = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
             // Phase 3:
             // Group namespaces by project path, so that namespace files can be written for the appropriate project
-            List<string> generatedFiles = new List<string>();
+            WriteMessage("Generating typings files...");
             foreach (var projectGroup in namespaces.Values.GroupBy(x => x.ProjectPath, StringComparer.OrdinalIgnoreCase))
             {
-                generatedFiles.Clear();
+                List<string> generatedFiles = new List<string>();
                 foreach (var ns in projectGroup)
                 {
                     if (ns.ShouldWrite)
@@ -274,7 +274,7 @@ namespace TypescriptCodeGeneration
 
                         sb.Append(outputter.GetContent());
                         if (sb.Length > 0)
-                            System.IO.File.WriteAllText(filenameToWrite, sb.ToString(), Encoding.UTF8);
+                            await FileHelpers.WriteAllTextRetry(filenameToWrite, sb.ToString());
 
                         generatedFiles.Add(filenameToWrite);
                     }
@@ -284,22 +284,30 @@ namespace TypescriptCodeGeneration
                 {
                     string referencesFilePath = null;
                     if (tgtProvider != null)
-                        referencesFilePath = tgtProvider.GetTargetDirectoryForReferencesFile(projectGroup.Key);
+                        referencesFilePath = tgtProvider.GetDefaultTargetReferencesFilename(projectGroup.Key);
                     else
                         referencesFilePath = GetDefaultTargetReferencesFilename(projectGroup.Key);
 
-                    StringBuilder sb = new StringBuilder();
-                    foreach (var refPath in generatedFiles)
-                    {
-                        sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", FileHelpers.RelativePath(referencesFilePath, refPath));
-                    }
-                    WriteMessage("Generating _references.d.ts file.");
-                    await FileHelpers.WriteAllTextRetry(referencesFilePath, sb.ToString());
-                    WriteMessage("TS File Generation complete!");
-                    projectReferenceFiles.Add(referencesFilePath);
+                    List<string> existingList;
+                    if (projectReferenceFiles.TryGetValue(referencesFilePath, out existingList))
+                        existingList.AddRange(generatedFiles);
+                    else
+                        projectReferenceFiles.Add(referencesFilePath, new List<string>(generatedFiles));
                 }
             }
 
+            WriteMessage("Generating reference files...");
+            foreach (var refFile in projectReferenceFiles)
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (var refPath in refFile.Value)
+                {
+                    sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", FileHelpers.RelativePath(refFile.Key, refPath));
+                }
+                
+                await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString());
+            }
+            WriteMessage("TS File Generation complete!");
             return projectReferenceFiles;
         }
 

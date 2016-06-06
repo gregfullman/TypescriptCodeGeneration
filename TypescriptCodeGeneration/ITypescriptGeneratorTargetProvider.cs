@@ -10,6 +10,6 @@ namespace TypescriptCodeGeneration
     public interface ITypescriptGeneratorTargetProvider
     {
         string GetTargetFilename(string namespaceStr, string containingProject);
-        string GetTargetDirectoryForReferencesFile(string containingProject);
+        string GetDefaultTargetReferencesFilename(string containingProject);
     }
 }
