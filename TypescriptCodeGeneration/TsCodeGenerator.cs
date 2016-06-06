@@ -236,7 +236,7 @@ namespace TypescriptCodeGeneration
                         string filenameToWrite = null;
                         if (tgtProvider != null)
                             filenameToWrite = tgtProvider.GetTargetFilename(ns.DisplayText, projectGroup.Key);
-                        else
+                        if(filenameToWrite == null)
                             filenameToWrite = GetDefaultTargetFilename(ns.DisplayText, projectGroup.Key);
 
                         TsOutputer outputter = new TsOutputer();
@@ -261,10 +261,10 @@ namespace TypescriptCodeGeneration
                                     containingProject = namespaceObj.ProjectPath;
                                 else
                                     containingProject = projectGroup.Key;
-                                string nsFilename;
+                                string nsFilename = null;
                                 if (tgtProvider != null)
                                     nsFilename = tgtProvider.GetTargetFilename(reference, containingProject);
-                                else
+                                if(nsFilename == null)
                                     nsFilename = GetDefaultTargetFilename(reference, containingProject);
                                 sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", FileHelpers.RelativePath(filenameToWrite, nsFilename));
                             }
@@ -285,7 +285,7 @@ namespace TypescriptCodeGeneration
                     string referencesFilePath = null;
                     if (tgtProvider != null)
                         referencesFilePath = tgtProvider.GetDefaultTargetReferencesFilename(projectGroup.Key);
-                    else
+                    if(referencesFilePath == null)
                         referencesFilePath = GetDefaultTargetReferencesFilename(projectGroup.Key);
 
                     List<string> existingList;
