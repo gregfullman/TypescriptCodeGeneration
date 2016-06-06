@@ -2,33 +2,69 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace TypescriptCodeGeneration
 {
+    public enum FileStatus
+    {
+        Invalid,
+        Added,
+        Updated,
+        Unchanged
+    }
+
     public static class FileHelpers
     {
         static char[] pathSplit = { '/', '\\' };
 
-        public async static Task WriteAllTextRetry(string fileName, string contents, bool withBOM = true)
+        public async static Task<TsCodeGenerationResult> WriteAllTextRetry(string fileName, string contents, bool withBOM = true)
         {
-            if (string.IsNullOrEmpty(fileName))
-                return;
-
-            int retryCount = 500;
-
-            try
+            TsCodeGenerationResult result = new TsCodeGenerationResult { Path = fileName, Status = FileStatus.Invalid };
+            if (!string.IsNullOrEmpty(fileName))
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(fileName));
-                File.WriteAllText(fileName, contents, new UTF8Encoding(withBOM));
+                int retryCount = 500;
+                FileStatus returnStatus = FileStatus.Invalid;
+                try
+                {
+                    var dir = Path.GetDirectoryName(fileName);
+                    if (!Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+                    }
+                    if (!File.Exists(fileName))
+                    {
+                        result.Status = FileStatus.Added;
+                    }
+                    else
+                    {
+                        // Check to see if the file should be changed
+                        if (!CompareContentToExistingFile(contents, fileName))
+                        {
+                            result.Status = FileStatus.Updated;
+                        }
+                        else
+                        {
+                            result.Status = FileStatus.Unchanged;
+                        }
+                    }
+                    File.WriteAllText(fileName, contents, new UTF8Encoding(withBOM));
+                }
+                catch (IOException)
+                {
+                    result.Status = FileStatus.Unchanged;
+                }
             }
-            catch (IOException)
-            {
-                // TODO: alert
-            }
+            return result;
         }
 
+        private static bool CompareContentToExistingFile(string content, string existingFile)
+        {
+            var existingContent = File.ReadAllText(existingFile);
+            return content == existingContent;
+        }
 
         public static string RelativePath(string absolutePath, string relativeTo)
         {

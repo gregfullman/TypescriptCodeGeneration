@@ -75,11 +75,11 @@ namespace TypescriptCodeGeneration
             // go up the inheritance tree
             while(tempSymbol.BaseType != null && (baseTypeName = tempSymbol.BaseType.ToDisplayString(_symDisplayFormat)) != "System.Object")
             {
-                if (symbol.BaseType.OriginalDefinition.Locations.Any(s => s.IsInSource))
+                if (tempSymbol.BaseType.OriginalDefinition.Locations.Any(s => s.IsInSource))
                 {
                     // The base type is defined somewhere else in the solution, so we can just use this type.
                     // The type will be resolved based on the references
-                    extendingType = context.GetTsType(symbol.BaseType, references);
+                    extendingType = context.GetTsType(tempSymbol.BaseType, references);
                     break;
                 }
 
@@ -87,7 +87,14 @@ namespace TypescriptCodeGeneration
                 switch(baseTypeName)
                 {
                     case "System.Collections.Generic.Dictionary":
-                        // TODO: not supported yet
+                        if(symbol.TypeArguments.Length == 0 &&
+                           tempSymbol.TypeArguments.Length == 2)
+                        {
+                            // TODO: check that the first argument is either an integer or a string
+                            // The class is defined as a non-generic class that inherits from the generic dictionary, where types are defined.
+                            // In this case, we can define an indexer property for the class
+                             
+                        }
                         breakWhile = true;
                         break;
                     default:
@@ -264,12 +271,9 @@ namespace TypescriptCodeGeneration
 
                         var commentXml = symbol.GetDocumentationCommentXml();
 
-                        var member = new CSharpEnumMember();
+                        var member = new CSharpEnumMember { Value = symbol.ConstantValue, DisplayText = symbol.MetadataName };
                         member.SetSummaryViaXml(commentXml);
-                        var name = symbol.MetadataName;
-                        member.DisplayText = name;
-
-                        enumObj.Children.Add(name, member);
+                        enumObj.Children.Add(symbol.MetadataName, member);
                     }
                 }
             }

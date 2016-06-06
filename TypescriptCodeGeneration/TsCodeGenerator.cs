@@ -22,7 +22,7 @@ namespace TypescriptCodeGeneration
 
         public static event EventHandler<TsCodeGeneratorEventArgs> MessageOutputted;
 
-        public static async Task<Dictionary<string, List<string>>> GenerateCode(string solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
+        public static async Task<IEnumerable<TsCodeGenerationResult>> GenerateCode(string solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
         {
             if (_solution == null || _solution.FilePath != solution)
             {
@@ -49,7 +49,7 @@ namespace TypescriptCodeGeneration
             }
         }
 
-        public static async Task<Dictionary<string, List<string>>> GenerateCode(Solution solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
+        public static async Task<IEnumerable<TsCodeGenerationResult>> GenerateCode(Solution solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
         {
             _solution = solution;
 
@@ -222,6 +222,7 @@ namespace TypescriptCodeGeneration
             }
 
             Dictionary<string, List<string>> projectReferenceFiles = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            List<TsCodeGenerationResult> resultFiles = new List<TsCodeGenerationResult>();
 
             // Phase 3:
             // Group namespaces by project path, so that namespace files can be written for the appropriate project
@@ -274,9 +275,11 @@ namespace TypescriptCodeGeneration
 
                         sb.Append(outputter.GetContent());
                         if (sb.Length > 0)
-                            await FileHelpers.WriteAllTextRetry(filenameToWrite, sb.ToString());
-
-                        generatedFiles.Add(filenameToWrite);
+                        {
+                            var fileResult = await FileHelpers.WriteAllTextRetry(filenameToWrite, sb.ToString());
+                            resultFiles.Add(fileResult);
+                            generatedFiles.Add(filenameToWrite);
+                        }
                     }
                 }
 
@@ -305,10 +308,11 @@ namespace TypescriptCodeGeneration
                     sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", FileHelpers.RelativePath(refFile.Key, refPath));
                 }
                 
-                await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString());
+                var fileResult = await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString());
+                resultFiles.Add(fileResult);
             }
             WriteMessage("TS File Generation complete!");
-            return projectReferenceFiles;
+            return resultFiles;
         }
 
         private static string GetDefaultTargetFilename(string namespaceStr, string projectFile)
