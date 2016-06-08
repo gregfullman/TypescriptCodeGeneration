@@ -75,7 +75,7 @@ namespace TypescriptCodeGeneration
                 if (parsedProjects.Contains(projName))
                     continue;
 
-                Project project = _solution.Projects.FirstOrDefault(x => x.FilePath.Equals(projName, StringComparison.OrdinalIgnoreCase));
+                Project project = _solution.Projects.FirstOrDefault(x => x.FilePath != null && x.FilePath.Equals(projName, StringComparison.OrdinalIgnoreCase));
                 if (project != null)
                 {
                     var compUnit = project.GetCompilationAsync().Result;
