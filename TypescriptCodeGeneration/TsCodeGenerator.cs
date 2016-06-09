@@ -254,7 +254,7 @@ namespace TypescriptCodeGeneration
 
                         if (uniqueNsReferences.Count > 0)
                         {
-                            foreach (var reference in uniqueNsReferences)
+                            foreach (var reference in uniqueNsReferences.OrderBy(x => x))
                             {
                                 string containingProject = null;
                                 CSharpNamespace namespaceObj;
@@ -303,10 +303,8 @@ namespace TypescriptCodeGeneration
             foreach (var refFile in projectReferenceFiles)
             {
                 StringBuilder sb = new StringBuilder();
-                foreach (var refPath in refFile.Value)
-                {
+                foreach (var refPath in refFile.Value.OrderBy(x => x))
                     sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", FileHelpers.RelativePath(refFile.Key, refPath));
-                }
                 
                 var fileResult = await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString());
                 resultFiles.Add(fileResult);

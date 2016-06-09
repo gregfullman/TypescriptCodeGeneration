@@ -98,7 +98,7 @@ namespace TypescriptCodeGeneration
 
         public virtual void WriteTypescript(TsOutputer outputter)
         {
-            foreach (var child in Children.Values)
+            foreach (var child in Children.Values.OrderBy(x => x.DisplayText))
                 child.WriteTypescript(outputter);
         }
     }
