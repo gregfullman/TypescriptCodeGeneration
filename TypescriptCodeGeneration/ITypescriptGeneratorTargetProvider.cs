@@ -11,5 +11,6 @@ namespace TypescriptCodeGeneration
     {
         string GetTargetFilename(string namespaceStr, string containingProject);
         string GetDefaultTargetReferencesFilename(string containingProject);
+        bool EnsureFileIsWritable(string filename);
     }
 }

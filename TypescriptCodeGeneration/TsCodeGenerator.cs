@@ -276,7 +276,7 @@ namespace TypescriptCodeGeneration
                         sb.Append(outputter.GetContent());
                         if (sb.Length > 0)
                         {
-                            var fileResult = await FileHelpers.WriteAllTextRetry(filenameToWrite, sb.ToString());
+                            var fileResult = await FileHelpers.WriteAllTextRetry(filenameToWrite, sb.ToString(), tgtProvider.EnsureFileIsWritable);
                             resultFiles.Add(fileResult);
                             generatedFiles.Add(filenameToWrite);
                         }
@@ -306,7 +306,7 @@ namespace TypescriptCodeGeneration
                 foreach (var refPath in refFile.Value.OrderBy(x => x))
                     sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", FileHelpers.RelativePath(refFile.Key, refPath));
                 
-                var fileResult = await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString());
+                var fileResult = await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString(), tgtProvider.EnsureFileIsWritable);
                 resultFiles.Add(fileResult);
             }
             WriteMessage("TS File Generation complete!");

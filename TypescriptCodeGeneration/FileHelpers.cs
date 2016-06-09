@@ -20,7 +20,7 @@ namespace TypescriptCodeGeneration
     {
         static char[] pathSplit = { '/', '\\' };
 
-        public async static Task<TsCodeGenerationResult> WriteAllTextRetry(string fileName, string contents, bool withBOM = true)
+        public async static Task<TsCodeGenerationResult> WriteAllTextRetry(string fileName, string contents, Func<string, bool> ensureWriteAccess, bool withBOM = true)
         {
             TsCodeGenerationResult result = new TsCodeGenerationResult { Path = fileName, Status = FileStatus.Invalid };
             if (!string.IsNullOrEmpty(fileName))
@@ -50,11 +50,31 @@ namespace TypescriptCodeGeneration
                             result.Status = FileStatus.Unchanged;
                         }
                     }
-                    File.WriteAllText(fileName, contents, new UTF8Encoding(withBOM));
+                    if(result.Status == FileStatus.Added || result.Status == FileStatus.Updated)
+                        File.WriteAllText(fileName, contents, new UTF8Encoding(withBOM));
                 }
                 catch (IOException)
                 {
                     result.Status = FileStatus.Unchanged;
+                }
+                catch(UnauthorizedAccessException)
+                {
+                    try
+                    {
+                        if (ensureWriteAccess != null && ensureWriteAccess(fileName))
+                        {
+                            File.WriteAllText(fileName, contents, new UTF8Encoding(withBOM));
+                            result.Status = FileStatus.Updated;
+                        }
+                        else
+                        {
+                            result.Status = FileStatus.Unchanged;
+                        }
+                    }
+                    catch(IOException)
+                    {
+                        result.Status = FileStatus.Unchanged;
+                    }
                 }
             }
             return result;

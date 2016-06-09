@@ -84,5 +84,10 @@ namespace TSCodeGenUnitTests
             }
             return null;
         }
+
+        public bool EnsureFileIsWritable(string filename)
+        {
+            return false;
+        }
     }
 }
