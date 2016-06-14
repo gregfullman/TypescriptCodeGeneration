@@ -10,5 +10,6 @@ namespace TypescriptCodeGeneration
     {
         public string Path { get; set; }
         public FileStatus Status { get; set; }
+        public string ErrorMessage { get; set; }
     }
 }

@@ -53,9 +53,10 @@ namespace TypescriptCodeGeneration
                     if(result.Status == FileStatus.Added || result.Status == FileStatus.Updated)
                         File.WriteAllText(fileName, contents, new UTF8Encoding(withBOM));
                 }
-                catch (IOException)
+                catch (IOException ioe)
                 {
                     result.Status = FileStatus.Unchanged;
+                    result.ErrorMessage = string.Format("Unable to write to file: {0}, {1}", fileName, ioe.Message);
                 }
                 catch(UnauthorizedAccessException)
                 {
@@ -69,11 +70,13 @@ namespace TypescriptCodeGeneration
                         else
                         {
                             result.Status = FileStatus.Unchanged;
+                            result.ErrorMessage = string.Format("Unable to write to file: {0}", fileName);
                         }
                     }
-                    catch(IOException)
+                    catch(IOException ioee)
                     {
                         result.Status = FileStatus.Unchanged;
+                        result.ErrorMessage = string.Format("Unable to write to file (after attempting ensure write): {0}, {1}", fileName, ioee.Message);
                     }
                 }
             }
