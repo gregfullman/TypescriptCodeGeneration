@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TypescriptCodeGeneration
@@ -22,7 +23,7 @@ namespace TypescriptCodeGeneration
 
         public static event EventHandler<TsCodeGeneratorEventArgs> MessageOutputted;
 
-        public static async Task<IEnumerable<TsCodeGenerationResult>> GenerateCode(string solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
+        public static async Task<IEnumerable<TsCodeGenerationResult>> GenerateCode(string solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider, bool wholeSolution)
         {
             if (_solution == null || _solution.FilePath != solution)
             {
@@ -32,7 +33,7 @@ namespace TypescriptCodeGeneration
                 WriteMessage("Solution opened!");
             }
 
-            return await GenerateCode(_solution, projects, tgtProvider);
+            return await GenerateCode(_solution, projects, tgtProvider, wholeSolution);
         }
 
         private static void PopulateProjects()
@@ -49,7 +50,7 @@ namespace TypescriptCodeGeneration
             }
         }
 
-        public static async Task<IEnumerable<TsCodeGenerationResult>> GenerateCode(Solution solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider)
+        public static async Task<IEnumerable<TsCodeGenerationResult>> GenerateCode(Solution solution, IEnumerable<string> projects, ITypescriptGeneratorTargetProvider tgtProvider, bool wholeSolution)
         {
             _solution = solution;
 
@@ -305,13 +306,28 @@ namespace TypescriptCodeGeneration
             foreach (var refFile in projectReferenceFiles)
             {
                 StringBuilder sb = new StringBuilder();
+                if(!wholeSolution && File.Exists(refFile.Key))
+                    sb.Append(File.ReadAllText(refFile.Key));
+                bool write = false;
+                Regex r = new Regex(@"/// <reference path=""(.*)"" />", RegexOptions.Multiline);
+                HashSet<string> existingPaths = new HashSet<string>(r.Matches(sb.ToString()).Cast<Match>().Select(x => x.Groups[1].Value), StringComparer.OrdinalIgnoreCase);
                 foreach (var refPath in refFile.Value.OrderBy(x => x))
-                    sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", FileHelpers.RelativePath(refFile.Key, refPath));
-                
-                var fileResult = await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString(), tgtProvider.EnsureFileIsWritable);
-                if (fileResult.ErrorMessage != null)
-                    WriteMessage(fileResult.ErrorMessage);
-                resultFiles.Add(fileResult);
+                {
+                    var relativePath = FileHelpers.RelativePath(refFile.Key, refPath);
+                    if (!existingPaths.Contains(relativePath))
+                    {
+                        write = true;
+                        sb.AppendFormat("/// <reference path=\"{0}\" />\r\n", relativePath);
+                    }
+                }
+
+                if(write)
+                {
+                    var fileResult = await FileHelpers.WriteAllTextRetry(refFile.Key, sb.ToString(), tgtProvider.EnsureFileIsWritable);
+                    if (fileResult.ErrorMessage != null)
+                        WriteMessage(fileResult.ErrorMessage);
+                    resultFiles.Add(fileResult);
+                }
             }
             WriteMessage("TS File Generation complete!");
             return resultFiles;

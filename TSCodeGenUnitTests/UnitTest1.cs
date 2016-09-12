@@ -22,7 +22,8 @@ namespace TSCodeGenUnitTests
         {
             var task = TsCodeGenerator.GenerateCode(@"C:\Users\greg.fullman\Documents\Visual Studio 2015\Projects\ConsoleApplication1\ConsoleApplication1.sln",
                                                  null,
-                                                 null);
+                                                 null,
+                                                 true);
             task.Wait();
             var result = task.Result;
             Assert.IsTrue(true);
