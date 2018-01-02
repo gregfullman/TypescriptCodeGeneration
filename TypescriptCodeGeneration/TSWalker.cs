@@ -67,6 +67,54 @@ namespace TypescriptCodeGeneration
             return suffix;
         }
 
+        private CSharpProperty BuildProperty(IPropertySymbol symbol, CSharpClass referencingClass, string nameSpace = null)
+        {
+            var prop = new CSharpProperty();
+
+            var commentXml = symbol.GetDocumentationCommentXml();
+            var typeName = symbol.Type.Name.ToString();
+            Dictionary<string, HashSet<string>> references = new Dictionary<string, HashSet<string>>();
+            var newTypeName = context.GetTsType(symbol.Type, references);
+            //if (newTypeName == null || string.IsNullOrEmpty(newTypeName))
+            //{
+
+            //}
+            // remove the namespace if it's the same
+            if (nameSpace != null && newTypeName.StartsWith(nameSpace))
+            {
+                newTypeName = newTypeName.Remove(0, nameSpace.Length + 1); // +1 for the dot
+            }
+
+            if (references.Count > 0)
+                referencingClass.AddReferences(references);
+
+            prop.SetSummaryViaXml(commentXml);
+            var name = symbol.Name.ToString();
+            prop.DisplayText = name + ": " + newTypeName + ";";
+
+            return prop;
+        }
+
+        private IEnumerable<KeyValuePair<string, CSharpProperty>> GetBasePropertiesFromExternalAssembly(INamedTypeSymbol symbol, CSharpClass referencingClass)
+        {
+            if(symbol.BaseType != null && 
+               symbol.BaseType.ToDisplayString(_symDisplayFormat) != "System.Object" &&
+               !symbol.BaseType.OriginalDefinition.Locations.Any(s => s.IsInSource))
+            {
+                var properties = symbol.GetAccessibleMembersInThisAndBaseTypes(SymbolKind.Property, Accessibility.Public);
+                foreach (ISymbol property in properties)
+                {
+                    var propSymbol = property as IPropertySymbol;
+                    if (propSymbol != null &&
+                        propSymbol.GetMethod != null &&
+                        propSymbol.SetMethod != null)
+                    {
+                        yield return new KeyValuePair<string, CSharpProperty>(propSymbol.Name, BuildProperty(propSymbol, referencingClass, null));
+                    }
+                }
+            }
+        }
+
         private string GetExtendingType(INamedTypeSymbol symbol, Dictionary<string, HashSet<string>> references)
         {
             string extendingType = "";
@@ -158,6 +206,11 @@ namespace TypescriptCodeGeneration
                 Dictionary<string, HashSet<string>> references = new Dictionary<string, HashSet<string>>();
                 string typeSuffix = GetGenericTypeSuffix(symbol, references);
                 classObj.ExtendedInterface = GetExtendingType(symbol, references);
+                if (string.IsNullOrEmpty(classObj.ExtendedInterface))
+                {
+                    foreach (var baseProperty in GetBasePropertiesFromExternalAssembly(symbol, classObj))
+                        classObj.Children.Add(baseProperty.Key, baseProperty.Value);
+                }
 
                 var commentXml = symbol.GetDocumentationCommentXml();
 
@@ -196,27 +249,8 @@ namespace TypescriptCodeGeneration
                         // TODO: do we want to allow for getter-only properties?
                         if (symbol.GetMethod != null && symbol.SetMethod != null)
                         {
-                            var prop = new CSharpProperty();
-
-                            var commentXml = symbol.GetDocumentationCommentXml();
-                            var typeName = symbol.Type.Name.ToString();
-                            Dictionary<string, HashSet<string>> references = new Dictionary<string, HashSet<string>>();
-                            var newTypeName = context.GetTsType(symbol.Type, references);
-
-                            // remove the namespace if it's the same
-                            if (newTypeName.StartsWith(ns))
-                            {
-                                newTypeName = newTypeName.Remove(0, ns.Length + 1); // +1 for the dot
-                            }
-
-                            if (references.Count > 0)
-                                classObj.AddReferences(references);
-
-                            prop.SetSummaryViaXml(commentXml);
-                            var name = node.Identifier.ToString();
-                            prop.DisplayText = name + ": " + newTypeName + ";";
-
-                            classObj.Children.Add(name, prop);
+                            var prop = BuildProperty(symbol, classObj, ns);
+                            classObj.Children.Add(node.Identifier.ToString(), prop);
                         }
                     }
                 }

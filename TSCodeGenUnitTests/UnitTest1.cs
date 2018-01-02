@@ -20,7 +20,7 @@ namespace TSCodeGenUnitTests
         [TestMethod]
         public void TestMethod1()
         {
-            var task = TsCodeGenerator.GenerateCode(@"C:\Users\greg.fullman\Documents\Visual Studio 2015\Projects\ConsoleApplication1\ConsoleApplication1.sln",
+            var task = TsCodeGenerator.GenerateCode(@"C:\Users\greg.fullman\Documents\Visual Studio 2015\Projects\ConsoleApplication4\ConsoleApplication4.sln",
                                                  null,
                                                  null,
                                                  true);

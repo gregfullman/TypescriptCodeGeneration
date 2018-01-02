@@ -163,8 +163,14 @@ namespace TypescriptCodeGeneration
             {
                 return mappings[typeWithNs];
             }
-            if (!typeSymbol.OriginalDefinition.Locations.Any(s => s.IsInSource))
+            if(typeSymbol.OriginalDefinition.Locations.Length == 0)
+            {
                 return "any";
+            }
+            else if (!typeSymbol.OriginalDefinition.Locations.Any(s => s.IsInSource))
+            {
+                return "any";
+            }
             else
             {
                 // add reference

@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,6 +35,26 @@ namespace TypescriptCodeGeneration
                     ns = string.Join(".", pieces.Take(pieces.Length - 1));
                 }
             }
+        }
+
+        public static IEnumerable<ITypeSymbol> GetBaseTypesAndThis(this ITypeSymbol type)
+        {
+            var current = type;
+            while (current != null)
+            {
+                yield return current;
+                current = current.BaseType;
+            }
+        }
+
+        public static ImmutableArray<ISymbol> GetAccessibleMembersInThisAndBaseTypes(this ITypeSymbol containingType, SymbolKind kind, Accessibility accessibility)
+        {
+            return containingType.GetBaseTypesAndThis()
+                                 .Where(x => !x.Equals(containingType))
+                                 .SelectMany(x => x.GetMembers()
+                                                   .OfType<ISymbol>()
+                                                   .Where(y => y.Kind == kind && y.DeclaredAccessibility == accessibility))
+                                 .ToImmutableArray();
         }
     }
 }
