@@ -99,6 +99,7 @@ namespace TypescriptCodeGeneration
         {
             if(symbol.BaseType != null && 
                symbol.BaseType.ToDisplayString(_symDisplayFormat) != "System.Object" &&
+               symbol.BaseType.ToDisplayString(_symDisplayFormat) != "System.Configuration.ApplicationSettingsBase" &&
                !symbol.BaseType.OriginalDefinition.Locations.Any(s => s.IsInSource))
             {
                 var properties = symbol.GetAccessibleMembersInThisAndBaseTypes(SymbolKind.Property, Accessibility.Public);
@@ -209,7 +210,8 @@ namespace TypescriptCodeGeneration
                 if (string.IsNullOrEmpty(classObj.ExtendedInterface))
                 {
                     foreach (var baseProperty in GetBasePropertiesFromExternalAssembly(symbol, classObj))
-                        classObj.Children.Add(baseProperty.Key, baseProperty.Value);
+                        if(!classObj.Children.ContainsKey(baseProperty.Key))
+                            classObj.Children.Add(baseProperty.Key, baseProperty.Value);
                 }
 
                 var commentXml = symbol.GetDocumentationCommentXml();
@@ -250,7 +252,8 @@ namespace TypescriptCodeGeneration
                         if (symbol.GetMethod != null && symbol.SetMethod != null)
                         {
                             var prop = BuildProperty(symbol, classObj, ns);
-                            classObj.Children.Add(node.Identifier.ToString(), prop);
+                            if(!classObj.Children.ContainsKey(node.Identifier.ToString()))
+                                classObj.Children.Add(node.Identifier.ToString(), prop);
                         }
                     }
                 }
