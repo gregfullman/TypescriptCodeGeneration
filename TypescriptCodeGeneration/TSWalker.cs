@@ -58,11 +58,11 @@ namespace TypescriptCodeGeneration
             if (symbol.IsGenericType)
             {
                 string[] types = symbol.TypeArguments.Select(s => context.GetTsType(s, references)).ToArray();
-                if (types.Length == 1)
-                {
+                //if (types.Length == 1)
+                //{
                     // TODO: for right now we're constraining this to one generic parameter.
                     suffix = string.Format("<{0}>", string.Join(",", types));
-                }
+                //}
             }
             return suffix;
         }
@@ -137,7 +137,7 @@ namespace TypescriptCodeGeneration
                 {
                     case "System.Collections.Generic.Dictionary":
                         if(symbol.TypeArguments.Length == 0 &&
-                           tempSymbol.TypeArguments.Length == 2)
+                           tempSymbol.BaseType.TypeArguments.Length == 2)
                         {
                             // TODO: check that the first argument is either an integer or a string
                             // The class is defined as a non-generic class that inherits from the generic dictionary, where types are defined.
@@ -210,8 +210,11 @@ namespace TypescriptCodeGeneration
                 if (string.IsNullOrEmpty(classObj.ExtendedInterface))
                 {
                     foreach (var baseProperty in GetBasePropertiesFromExternalAssembly(symbol, classObj))
-                        if(!classObj.Children.ContainsKey(baseProperty.Key))
+                        if (!baseProperty.Key.StartsWith("this", StringComparison.Ordinal) &&
+                           !classObj.Children.ContainsKey(baseProperty.Key))
+                        {
                             classObj.Children.Add(baseProperty.Key, baseProperty.Value);
+                        }
                 }
 
                 var commentXml = symbol.GetDocumentationCommentXml();

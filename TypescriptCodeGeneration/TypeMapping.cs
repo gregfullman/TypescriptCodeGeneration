@@ -54,10 +54,10 @@ namespace TypescriptCodeGeneration
             {
                 // need to make sure this type parameter can actually be resolved within Typescript.
                 // TODO: if we ever allow more than one type argument, this needs to be revisited
-                if ((typeSymbol as ITypeParameterSymbol).DeclaringType.TypeArguments.Length == 1)
+                //if ((typeSymbol as ITypeParameterSymbol).DeclaringType.TypeArguments.Length == 1)
                     return typeSymbol.ToString();
-                else
-                    return "any";
+                //else
+                //    return "any";
             }
             var typeWithNs = typeSymbol.ContainingNamespace + "." + typeSymbol.MetadataName;
             if (typeSymbol is IArrayTypeSymbol)
@@ -92,10 +92,10 @@ namespace TypescriptCodeGeneration
                     {
                         // Prevent multiple generic parameters
                         // TODO: revisit when/if we want to support this
-                        if(types.Length > 1)
-                        {
-                            types = new string[0];
-                        }
+                        //if(types.Length > 1)
+                        //{
+                        //    types = new string[0];
+                        //}
 
                         var baseTypeName = typeSymbol.BaseType != null ? typeSymbol.BaseType.ToDisplayString(_symDisplayFormat) : null;
                         if (baseTypeName != null && baseTypeName != "System.Object" && typeSymbol.OriginalDefinition.Locations.Any(s => s.IsInSource))
